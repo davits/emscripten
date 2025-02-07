@@ -717,6 +717,7 @@ class val::awaiter {
   constexpr static std::size_t STATE_PROMISE = 0;
   constexpr static std::size_t STATE_CORO = 1;
   constexpr static std::size_t STATE_RESULT = 2;
+  constexpr static std::size_t STATE_ERROR = 3;
 
 public:
   awaiter(const val& promise)
@@ -743,9 +744,20 @@ public:
     coro.resume();
   }
 
+  void reject_with(val&& error) {
+    auto coro = std::move(std::get<STATE_CORO>(state));
+    state.emplace<STATE_ERROR>(std::move(error));
+    coro.resume();
+  }
+
   // `await_resume` finalizes the awaiter and should return the result
   // of the `co_await ...` expression - in our case, the stored value.
-  val await_resume() { return std::move(std::get<STATE_RESULT>(state)); }
+  val await_resume() {
+    if (state.index() == STATE_ERROR) {
+      throw std::get<STATE_ERROR>(state);
+    }
+    return std::move(std::get<STATE_RESULT>(state));
+  }
 };
 
 inline val::awaiter val::operator co_await() const {

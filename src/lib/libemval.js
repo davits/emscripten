@@ -467,10 +467,11 @@ var LibraryEmVal = {
     return result.done ? 0 : Emval.toHandle(result.value);
   },
 
-  _emval_coro_suspend__deps: ['$Emval', '_emval_coro_resume'],
-  _emval_coro_suspend: async (promiseHandle, awaiterPtr) => {
-    var result = await Emval.toValue(promiseHandle);
-    __emval_coro_resume(awaiterPtr, Emval.toHandle(result));
+  _emval_coro_suspend__deps: ['$Emval', '_emval_coro_resume',  '_emval_coro_reject'],
+  _emval_coro_suspend: (promiseHandle, awaiterPtr) => {
+    Promise.resolve(Emval.toValue(promiseHandle))
+      .then(result => __emval_coro_resume(awaiterPtr, Emval.toHandle(result)))
+      .catch(error => __emval_coro_reject(awaiterPtr, Emval.toHandle(error)));
   },
 
   _emval_coro_make_promise__deps: ['$Emval', '__cxa_rethrow'],
